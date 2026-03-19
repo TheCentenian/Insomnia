@@ -7,6 +7,36 @@ import { Transaction } from '@mysten/sui/transactions';
 import { BaseBlockchainService } from './base';
 import { IScoreSystemService, TransactionResult } from '../../types/blockchain';
 
+type LeaderboardPlayer = {
+  address: string;
+  bestScore: number;
+  bestTime: number;
+  bestClicks: number;
+  bestEfficiency: number;
+  avgScore: number;
+  avgTime: number;
+  avgClicks: number;
+  avgEfficiency: number;
+  skillTier: number;
+  totalGames: number;
+  lastPlayed: number;
+};
+
+type LeaderboardCategory = {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+};
+
+type BackendLeaderboardRow = {
+  address?: string;
+  bestScore?: number;
+  overallScore?: number;
+  lastPlayed?: number; // backend likely sends seconds
+  skillTier?: number;
+};
+
 export class ScoreSystemService extends BaseBlockchainService implements IScoreSystemService {
   
   /**
@@ -140,12 +170,13 @@ export class ScoreSystemService extends BaseBlockchainService implements IScoreS
       
       if (result.success && result.data) {
         // Convert backend format to GameScore format
-        const leaderboardData = result.data.map((player: any, index: number) => ({
+        const rawRows = (result.data ?? []) as BackendLeaderboardRow[];
+        const leaderboardData = rawRows.map((player, index) => ({
           gameId: `game_${index + 1}`,
-          playerAddress: player.address,
-          score: player.bestScore || player.overallScore || 0,
-          timestamp: player.lastPlayed * 1000, // Convert to milliseconds
-          speedLevel: player.skillTier || 0
+          playerAddress: player.address ?? '',
+          score: player.bestScore ?? player.overallScore ?? 0,
+          timestamp: (player.lastPlayed ?? 0) * 1000, // Convert to milliseconds
+          speedLevel: player.skillTier ?? 0
         }));
         
         console.log('✅ Leaderboard loaded from backend:', leaderboardData);
@@ -170,7 +201,7 @@ export class ScoreSystemService extends BaseBlockchainService implements IScoreS
     skillTier?: number
   ): Promise<{
     success: boolean;
-    data?: any[];
+    data?: LeaderboardPlayer[];
     totalPlayers?: number;
     error?: string;
   }> {
@@ -198,9 +229,10 @@ export class ScoreSystemService extends BaseBlockchainService implements IScoreS
       
       if (result.success) {
         console.log('✅ Leaderboard by category loaded:', result);
+        const data = (result.data ?? []) as LeaderboardPlayer[];
         return {
           success: true,
-          data: result.data,
+          data,
           totalPlayers: result.totalPlayers
         };
       }
@@ -221,7 +253,7 @@ export class ScoreSystemService extends BaseBlockchainService implements IScoreS
    */
   public async getLeaderboardCategories(): Promise<{
     success: boolean;
-    categories?: any[];
+    categories?: LeaderboardCategory[];
     error?: string;
   }> {
     try {
@@ -239,9 +271,10 @@ export class ScoreSystemService extends BaseBlockchainService implements IScoreS
       
       if (result.success) {
         console.log('✅ Leaderboard categories loaded:', result.categories);
+        const categories = (result.categories ?? []) as LeaderboardCategory[];
         return {
           success: true,
-          categories: result.categories
+          categories
         };
       }
       
@@ -261,7 +294,7 @@ export class ScoreSystemService extends BaseBlockchainService implements IScoreS
    */
   public async getSkillTiers(): Promise<{
     success: boolean;
-    skillTiers?: any[];
+    skillTiers?: number[];
     error?: string;
   }> {
     try {
@@ -279,9 +312,10 @@ export class ScoreSystemService extends BaseBlockchainService implements IScoreS
       
       if (result.success) {
         console.log('✅ Skill tiers loaded:', result.skillTiers);
+        const skillTiers = (result.skillTiers ?? []) as number[];
         return {
           success: true,
-          skillTiers: result.skillTiers
+          skillTiers
         };
       }
       

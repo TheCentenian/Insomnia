@@ -133,16 +133,23 @@ export class BaseBlockchainService implements IBlockchainService {
           console.log('📊 ScoreSystem object:', scoreSystemObject);
           
           if (scoreSystemObject.data?.content && scoreSystemObject.data.content.dataType === 'moveObject') {
-            const content = scoreSystemObject.data.content as any;
+            type ScoreSystemContent = { fields?: Record<string, unknown> };
+            type PlayerStatsTableRef = {
+              fields?: { id?: { id?: string } };
+              id?: string;
+            };
+            const content = scoreSystemObject.data.content as unknown as ScoreSystemContent;
             console.log('📊 ScoreSystem content fields:', content.fields);
             
                          // Try different approaches to access the table
              // Approach 1: Try to access the table directly
-             if (content.fields && content.fields.player_stats_table) {
-               console.log('✅ Found player_stats_table field:', content.fields.player_stats_table);
+             const playerStatsTable = content.fields?.['player_stats_table'] as unknown as PlayerStatsTableRef | undefined;
+
+             if (playerStatsTable) {
+               console.log('✅ Found player_stats_table field:', playerStatsTable);
                
                // Extract the actual table ID from the nested structure
-               const tableId = content.fields.player_stats_table.fields?.id?.id || content.fields.player_stats_table.id;
+               const tableId = playerStatsTable.fields?.id?.id ?? playerStatsTable.id;
                console.log('🔍 Extracted table ID:', tableId);
                
                if (!tableId) {
@@ -159,10 +166,9 @@ export class BaseBlockchainService implements IBlockchainService {
               console.log('📊 Table object:', tableObject);
               
                              // Try to query the table using getDynamicFields
-               const tableQuery = await this.client.getDynamicFields({
-                 parentId: tableId,
-                 options: { showContent: true }
-               });
+              const tableQuery = await this.client.getDynamicFields({
+                parentId: tableId,
+              });
               
               console.log('📊 Table query result:', tableQuery);
               
@@ -181,7 +187,24 @@ export class BaseBlockchainService implements IBlockchainService {
                     });
                     
                     if (statsObject.data?.content && statsObject.data.content.dataType === 'moveObject') {
-                      const statsContent = statsObject.data.content as any;
+                      type PlayerStatsFields = {
+                        total_score?: number | string;
+                        total_games?: number | string;
+                        total_clicks?: number | string;
+                        total_time_elapsed?: number | string;
+                        average_score?: number | string;
+                        average_clicks_per_game?: number | string;
+                        average_time_per_game?: number | string;
+                        personal_best_score?: number | string;
+                        personal_best_clicks?: number | string;
+                        personal_best_time?: number | string;
+                        current_skill_tier?: number | string;
+                        highest_endurance_level?: number | string;
+                      };
+
+                      const statsContent = statsObject.data.content as unknown as {
+                        fields?: { value?: { fields?: PlayerStatsFields } };
+                      };
                       console.log('📊 Player stats content:', statsContent);
                       
                                              // Extract the actual values from the Move object

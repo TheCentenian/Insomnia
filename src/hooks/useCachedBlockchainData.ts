@@ -34,9 +34,13 @@ export const useCachedPlayerStats = () => {
   return useQuery({
     queryKey: [CACHE_KEYS.PLAYER_STATS, accountAddress],
     queryFn: async () => {
-      if (!isReadyBoolean || !hasAccountAddress) {
-        throw new Error('Blockchain not ready or no account address');
+      if (!isReadyBoolean) {
+        throw new Error('Blockchain not ready');
       }
+      if (!accountAddress) {
+        throw new Error('No account address');
+      }
+      // `accountAddress` is guaranteed to be a string here by the null/empty guard above.
       return await scoreSystemService.getPlayerStats(accountAddress);
     },
     enabled: isReadyBoolean && hasAccountAddress,
@@ -84,8 +88,11 @@ export const useCachedGamePass = () => {
   return useQuery({
     queryKey: [CACHE_KEYS.GAME_PASS, accountAddress],
     queryFn: async () => {
-      if (!isReadyBoolean || !hasAccountAddress) {
-        throw new Error('Blockchain not ready or no account address');
+      if (!isReadyBoolean) {
+        throw new Error('Blockchain not ready');
+      }
+      if (!accountAddress) {
+        throw new Error('No account address');
       }
       return await gamePassService.getGamePassStatus(accountAddress);
     },
